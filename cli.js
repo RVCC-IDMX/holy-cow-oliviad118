@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-const yargs = require('yargs')
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import getStdin from 'get-stdin';
+import stripFinalNewline from 'strip-final-newline';
+import * as cowsay from './index.js';
+
+const yargsInstance = yargs(hideBin(process.argv))
 	.usage(`
 Usage: $0 [-e eye_string] [-f cowfile] [-h] [-l] [-n] [-T tongue_string] [-W column] [-bdgpstwy] text
 		
@@ -51,32 +57,31 @@ If the program is invoked as cowthink then the cow will think its message instea
   .help()
   .alias('h', 'help');
 
-const argv = yargs.argv;
+const argv = yargsInstance.argv;
 
 if (argv.l) {
   listCows();
 } else if (argv._.length) {
   say();
 } else {
-  require('get-stdin')().then((data) => {
+  getStdin().then((data) => {
     if (data) {
-      argv._ = [require('strip-final-newline')(data)];
+      argv._ = [stripFinalNewline(data)];
       say();
     } else {
-      yargs.showHelp();
+      yargsInstance.showHelp();
     }
   });
 }
 
 function say() {
-  const module = require('./index');
   const think = /think$/.test(argv['$0']) || argv.think;
 
-  console.log(think ? module.think(argv) : module.say(argv));
+  console.log(think ? cowsay.think(argv) : cowsay.say(argv));
 }
 
 function listCows() {
-  require('./index').list((err, list) => {
+  cowsay.list((err, list) => {
     if (err) throw new Error(err);
     console.log(list.join('  '));
   });

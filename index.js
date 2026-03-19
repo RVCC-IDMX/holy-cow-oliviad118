@@ -1,6 +1,6 @@
-var balloon = require("./lib/balloon");
-var cows = require("./lib/cows");
-var faces = require("./lib/faces");
+import * as balloon from "./lib/balloon.js";
+import * as cows from "./lib/cows.js";
+import faces from "./lib/faces.js";
 
 /**
  * @param options
@@ -53,9 +53,9 @@ var faces = require("./lib/faces");
  * 
  * @returns {string} compiled cow
  */
-exports.say = function (options) {
+export function say(options) {
 	return doIt(options, true);
-};
+}
 
 /**
  * @param options
@@ -108,9 +108,9 @@ exports.say = function (options) {
  * 
  * @returns {string} compiled cow
  */
-exports.think = function (options) {
+export function think(options) {
 	return doIt(options, false);
-};
+}
 
 /**
  * @example
@@ -129,7 +129,7 @@ exports.think = function (options) {
  * @param callback
  * @returns {Promise} promise
  */
-exports.list = cows.list;
+export const list = cows.list;
 
 function doIt (options, sayAloud) {
 	var cowFile;
