@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import getStdin from 'get-stdin';
 import stripFinalNewline from 'strip-final-newline';
 import * as cowsay from './index.js';
+import { createCustomCow, listCustomCows } from './lib/custom-cow-builder.js';
 
 const program = new Command();
 
@@ -49,6 +50,8 @@ program
   .option('-n, --nowrap', 'Disable word wrapping')
   .option('-r, --random', 'Choose a random cow')
   .option('-l, --list', 'List all available cow files')
+  .option('--list-custom', 'List all custom cows you\'ve created')
+  .option('--create', 'Create a new custom cow interactively')
   .option('--think', 'Think the message instead of saying it');
 
 program.parse(process.argv);
@@ -56,8 +59,19 @@ program.parse(process.argv);
 const options = program.opts();
 const args = program.args;
 
+// Handle create command
+if (options.create) {
+  createCustomCow().catch(err => {
+    console.error('Error creating custom cow:', err);
+    process.exit(1);
+  });
+}
+// Handle list-custom command
+else if (options.listCustom) {
+  listCustomCows();
+}
 // Handle list command
-if (options.list) {
+else if (options.list) {
   cowsay.list((err, list) => {
     if (err) throw new Error(err);
     console.log(list.join('  '));
