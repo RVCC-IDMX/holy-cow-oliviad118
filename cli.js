@@ -1,88 +1,103 @@
 #!/usr/bin/env node
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import { Command } from 'commander';
 import getStdin from 'get-stdin';
 import stripFinalNewline from 'strip-final-newline';
 import * as cowsay from './index.js';
 
-const yargsInstance = yargs(hideBin(process.argv))
-	.usage(`
-Usage: $0 [-e eye_string] [-f cowfile] [-h] [-l] [-n] [-T tongue_string] [-W column] [-bdgpstwy] text
-		
-If any command-line arguments are left over after all switches have been processed, they become the cow's message.
-		
-If the program is invoked as cowthink then the cow will think its message instead of saying it.
-`)
-  .options({
-    e: {
-      default: 'oo',
-    },
-    T: {
-      default: '  ',
-    },
-    W: {
-      default: 40,
-      type: 'number',
-    },
-    f: {
-      default: 'default',
-    },
-    think: {
-      type: 'boolean',
-    },
-  })
-  .describe({
-    b: 'Mode: Borg',
-    d: 'Mode: Dead',
-    g: 'Mode: Greedy',
-    p: 'Mode: Paranoia',
-    s: 'Mode: Stoned',
-    t: 'Mode: Tired',
-    w: 'Mode: Wired',
-    y: 'Mode: Youthful',
-    e: "Select the appearance of the cow's eyes.",
-    T:
-      'The tongue is configurable similarly to the eyes through -T and tongue_string.',
-    h: 'Display this help message',
-    n: 'If it is specified, the given message will not be word-wrapped.',
-    W:
-      'Specifies roughly where the message should be wrapped. The default is equivalent to -W 40 i.e. wrap words at or before the 40th column.',
-    f:
-      "Specifies a cow picture file (''cowfile'') to use. It can be either a path to a cow file or the name of one of cows included in the package.",
-    r: 'Select a random cow',
-    l: 'List all cowfiles included in this package.',
-    think: 'Think the message instead of saying it aloud.',
-  })
-  .boolean(['b', 'd', 'g', 'p', 's', 't', 'w', 'y', 'n', 'h', 'r', 'l'])
-  .help()
-  .alias('h', 'help');
+const program = new Command();
 
-const argv = yargsInstance.argv;
+// Determine if invoked as cowthink
+const isThinkMode = process.argv[1] && /cowthink/.test(process.argv[1]);
 
-if (argv.l) {
-  listCows();
-} else if (argv._.length) {
-  say();
-} else {
-  getStdin().then((data) => {
-    if (data) {
-      argv._ = [stripFinalNewline(data)];
-      say();
-    } else {
-      yargsInstance.showHelp();
-    }
-  });
-}
+program
+  .name(isThinkMode ? 'cowthink' : 'holy-cow')
+  .description('Holy Cow - A modernized configurable talking/thinking cow')
+  .version('2.0.0')
+  .argument('[message...]', 'Message for the cow to say or think')
+  .usage('[options] [message...]')
+  .addHelpText('after', `
+Examples:
+  $ holy-cow "Hello World"
+  $ holy-cow -f dragon "Roar!"
+  $ cowthink -d "I'm dead"
+  $ echo "Moo" | holy-cow
 
-function say() {
-  const think = /think$/.test(argv['$0']) || argv.think;
+If invoked as cowthink, the cow will think its message instead of saying it.
+If any command-line arguments are left over after all switches have been processed,
+they become the cow's message.`);
 
-  console.log(think ? cowsay.think(argv) : cowsay.say(argv));
-}
+// Face/Mode options
+program
+  .option('-b, --borg', 'Borg mode (eyes: ==)')
+  .option('-d, --dead', 'Dead mode (eyes: xx, tongue: U )')
+  .option('-g, --greedy', 'Greedy mode (eyes: $$)')
+  .option('-p, --paranoia', 'Paranoid mode (eyes: @@)')
+  .option('-s, --stoned', 'Stoned mode (eyes: **, tongue: U )')
+  .option('-t, --tired', 'Tired mode (eyes: --)')
+  .option('-w, --wired', 'Wired mode (eyes: OO)')
+  .option('-y, --youthful', 'Youthful mode (eyes: ..)');
 
-function listCows() {
+// Customization options
+program
+  .option('-e, --eyes <string>', "Set the cow's eyes", 'oo')
+  .option('-T, --tongue <string>', "Set the cow's tongue", '  ')
+  .option('-f, --file <cowfile>', 'Specify cow file (name or path)', 'default')
+  .option('-W, --wrap <columns>', 'Set word wrap width', '40');
+
+// Behavior options
+program
+  .option('-n, --nowrap', 'Disable word wrapping')
+  .option('-r, --random', 'Choose a random cow')
+  .option('-l, --list', 'List all available cow files')
+  .option('--think', 'Think the message instead of saying it');
+
+program.parse(process.argv);
+
+const options = program.opts();
+const args = program.args;
+
+// Handle list command
+if (options.list) {
   cowsay.list((err, list) => {
     if (err) throw new Error(err);
     console.log(list.join('  '));
   });
+} else if (args.length > 0) {
+  // Message provided as arguments
+  say(args.join(' '));
+} else {
+  // Try to read from stdin
+  getStdin().then((data) => {
+    if (data) {
+      say(stripFinalNewline(data));
+    } else {
+      program.help();
+    }
+  });
+}
+
+function say(text) {
+  // Build options object compatible with cowsay API
+  const cowOptions = {
+    text: text,
+    e: options.eyes,
+    T: options.tongue,
+    f: options.file,
+    W: parseInt(options.wrap),
+    n: options.nowrap,
+    r: options.random,
+    b: options.borg,
+    d: options.dead,
+    g: options.greedy,
+    p: options.paranoia,
+    s: options.stoned,
+    t: options.tired,
+    w: options.wired,
+    y: options.youthful,
+    think: options.think,
+    _: [text]
+  };
+
+  const think = isThinkMode || options.think;
+  console.log(think ? cowsay.think(cowOptions) : cowsay.say(cowOptions));
 }
